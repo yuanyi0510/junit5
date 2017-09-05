@@ -40,14 +40,14 @@ class DiscoveryFilterApplier {
 		if (packageNameFilters.isEmpty()) {
 			return;
 		}
-		TestDescriptor.Visitor filteringVisitor = descriptor -> {
+
+		engineDescriptor.applyInSubtreeTopDown(descriptor -> {
 			if (descriptor instanceof ClassTestDescriptor) {
 				if (!includePackage((ClassTestDescriptor) descriptor, packageNameFilters)) {
 					descriptor.removeFromHierarchy();
 				}
 			}
-		};
-		engineDescriptor.accept(filteringVisitor);
+		});
 	}
 
 	private boolean includePackage(ClassTestDescriptor classTestDescriptor,
@@ -71,13 +71,13 @@ class DiscoveryFilterApplier {
 		if (classNameFilters.isEmpty()) {
 			return;
 		}
-		TestDescriptor.Visitor filteringVisitor = descriptor -> {
+
+		engineDescriptor.applyInSubtreeTopDown(descriptor -> {
 			if (descriptor instanceof ClassTestDescriptor
 					&& !includeClass((ClassTestDescriptor) descriptor, classNameFilters)) {
 				descriptor.removeFromHierarchy();
 			}
-		};
-		engineDescriptor.accept(filteringVisitor);
+		});
 	}
 
 	private boolean includeClass(ClassTestDescriptor classTestDescriptor, List<ClassNameFilter> classNameFilters) {

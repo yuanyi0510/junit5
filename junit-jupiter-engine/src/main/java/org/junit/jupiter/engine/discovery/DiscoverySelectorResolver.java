@@ -64,11 +64,8 @@ public class DiscoverySelectorResolver {
 		request.getSelectorsByType(UniqueIdSelector.class).forEach(selector -> {
 			javaElementsResolver.resolveUniqueId(selector.getUniqueId());
 		});
-		pruneTree(engineDescriptor);
-	}
 
-	private void pruneTree(TestDescriptor rootDescriptor) {
-		rootDescriptor.accept(TestDescriptor::prune);
+		engineDescriptor.applyInSubtreeBottomUp(TestDescriptor::prune);
 	}
 
 	private JavaElementsResolver createJavaElementsResolver(TestDescriptor engineDescriptor) {
