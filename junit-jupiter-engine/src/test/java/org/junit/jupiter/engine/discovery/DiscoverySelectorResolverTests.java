@@ -14,9 +14,9 @@ import static java.util.Collections.singleton;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.engine.discovery.JupiterUniqueIdBuilder.engineId;
 import static org.junit.jupiter.engine.discovery.JupiterUniqueIdBuilder.uniqueIdForClass;
 import static org.junit.jupiter.engine.discovery.JupiterUniqueIdBuilder.uniqueIdForMethod;
@@ -161,7 +161,7 @@ class DiscoverySelectorResolverTests {
 		MethodSelector selector = selectMethod(notATest.getDeclaringClass(), notATest);
 		EngineDiscoveryRequest request = request().selectors(selector).build();
 		resolver.resolveSelectors(request, engineDescriptor);
-		assertTrue(engineDescriptor.getDescendants().isEmpty());
+		assertFalse(TestDescriptor.containsTests(engineDescriptor));
 	}
 
 	@Test
@@ -210,7 +210,7 @@ class DiscoverySelectorResolverTests {
 		EngineDiscoveryRequest request = request().selectors(selector).build();
 
 		resolver.resolveSelectors(request, engineDescriptor);
-		assertTrue(engineDescriptor.getDescendants().isEmpty());
+		assertFalse(TestDescriptor.containsTests(engineDescriptor));
 	}
 
 	@Test
@@ -219,7 +219,7 @@ class DiscoverySelectorResolverTests {
 		EngineDiscoveryRequest request = request().selectors(selector).build();
 
 		resolver.resolveSelectors(request, engineDescriptor);
-		assertTrue(engineDescriptor.getDescendants().isEmpty());
+		assertFalse(TestDescriptor.containsTests(engineDescriptor));
 	}
 
 	@Test
@@ -296,7 +296,7 @@ class DiscoverySelectorResolverTests {
 		EngineDiscoveryRequest request = request().selectors(selector).build();
 
 		resolver.resolveSelectors(request, engineDescriptor);
-		assertTrue(engineDescriptor.getDescendants().isEmpty());
+		assertFalse(TestDescriptor.containsTests(engineDescriptor));
 	}
 
 	@Test

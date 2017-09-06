@@ -74,6 +74,21 @@ public interface TestEngine {
 	TestDescriptor discover(EngineDiscoveryRequest discoveryRequest, UniqueId uniqueId);
 
 	/**
+	 * Prune empty tests from the given {@link TestDescriptor} and all its children.
+	 *
+	 * @param testDescriptor starting {@link TestDescriptor} for the pruning
+	 */
+	void prune(TestDescriptor testDescriptor);
+
+	/**
+	 * Removes the given {@link TestDescriptor} and all its children from the
+	 * test hierarchy.
+	 *
+	 * @param testDescriptor {@link TestDescriptor} to be removed
+	 */
+	void removeFromHierarchy(TestDescriptor testDescriptor);
+
+	/**
 	 * Execute tests according to the supplied {@link ExecutionRequest}.
 	 *
 	 * <p>The {@code request} passed to this method contains the root
@@ -174,5 +189,4 @@ public interface TestEngine {
 		return Optional.of(
 			PackageUtils.getAttribute(getClass(), Package::getImplementationVersion).orElse("DEVELOPMENT"));
 	}
-
 }

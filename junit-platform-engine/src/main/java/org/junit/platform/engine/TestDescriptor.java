@@ -22,7 +22,7 @@ import org.junit.platform.commons.meta.API;
 import org.junit.platform.commons.util.Preconditions;
 
 /**
- * Mutable descriptor for a test or container that has been discovered by a
+ * Immutable descriptor for a test or container that has been discovered by a
  * {@link TestEngine}.
  *
  * @see TestEngine
@@ -30,6 +30,15 @@ import org.junit.platform.commons.util.Preconditions;
  */
 @API(Stable)
 public interface TestDescriptor {
+
+	/**
+	 * Determine if the supplied descriptor or any of its descendants contains
+	 * any tests.
+	 */
+	static boolean containsTests(TestDescriptor testDescriptor) {
+		return testDescriptor.isTest() || testDescriptor.mayRegisterTests()
+				|| testDescriptor.getChildren().stream().anyMatch(TestDescriptor::containsTests);
+	}
 
 	/**
 	 * Get the unique identifier (UID) for this descriptor.
@@ -92,13 +101,6 @@ public interface TestDescriptor {
 	Optional<TestDescriptor> getParent();
 
 	/**
-	 * Set the <em>parent</em> of this descriptor.
-	 *
-	 * @param parent the new parent of this descriptor; may be {@code null}.
-	 */
-	void setParent(TestDescriptor parent);
-
-	/**
 	 * Get the immutable set of <em>children</em> of this descriptor.
 	 *
 	 * @return the set of children of this descriptor; neither {@code null}
@@ -123,32 +125,6 @@ public interface TestDescriptor {
 		}
 		return Collections.unmodifiableSet(descendants);
 	}
-
-	/**
-	 * Add a <em>child</em> to this descriptor.
-	 *
-	 * @param descriptor the child to add to this descriptor; never {@code null}
-	 */
-	void addChild(TestDescriptor descriptor);
-
-	/**
-	 * Remove a <em>child</em> from this descriptor.
-	 *
-	 * @param descriptor the child to remove from this descriptor; never
-	 * {@code null}
-	 */
-	void removeChild(TestDescriptor descriptor);
-
-	/**
-	 * Remove this non-root descriptor from its parent and remove all the
-	 * children from this descriptor.
-	 *
-	 * <p>If this method is invoked on a {@linkplain #isRoot root} descriptor,
-	 * this method must throw a {@link org.junit.platform.commons.JUnitException
-	 * JUnitException} explaining that a root cannot be removed from the
-	 * hierarchy.
-	 */
-	void removeFromHierarchy();
 
 	/**
 	 * Determine if this descriptor is a <em>root</em> descriptor.
@@ -194,32 +170,6 @@ public interface TestDescriptor {
 	 */
 	default boolean mayRegisterTests() {
 		return false;
-	}
-
-	/**
-	 * Determine if the supplied descriptor or any of its descendants contains
-	 * any tests.
-	 */
-	static boolean containsTests(TestDescriptor testDescriptor) {
-		return testDescriptor.isTest() || testDescriptor.mayRegisterTests()
-				|| testDescriptor.getChildren().stream().anyMatch(TestDescriptor::containsTests);
-	}
-
-	/**
-	 * Remove this descriptor from the hierarchy unless it is a root or contains
-	 * tests.
-	 *
-	 * <p>A concrete {@link TestEngine} may override this method in order to
-	 * implement a different algorithm or to skip pruning altogether.
-	 *
-	 * @see #isRoot()
-	 * @see #containsTests(TestDescriptor)
-	 * @see #removeFromHierarchy()
-	 */
-	default void prune() {
-		if (!containsTests(this)) {
-			removeFromHierarchy();
-		}
 	}
 
 	/**
@@ -305,5 +255,4 @@ public interface TestDescriptor {
 		}
 
 	}
-
 }

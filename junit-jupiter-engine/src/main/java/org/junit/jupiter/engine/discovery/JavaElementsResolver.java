@@ -32,9 +32,9 @@ import org.junit.jupiter.engine.JupiterTestEngine;
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor;
 import org.junit.jupiter.engine.discovery.predicates.IsInnerClass;
 import org.junit.platform.commons.util.ReflectionUtils;
-import org.junit.platform.engine.TestDescriptor;
 import org.junit.platform.engine.UniqueId;
 import org.junit.platform.engine.UniqueId.Segment;
+import org.junit.platform.engine.support.descriptor.TestDescriptorMutable;
 
 /**
  * @since 5.0
@@ -45,16 +45,16 @@ class JavaElementsResolver {
 
 	private static final IsInnerClass isInnerClass = new IsInnerClass();
 
-	private final TestDescriptor engineDescriptor;
+	private final TestDescriptorMutable engineDescriptor;
 	private final Set<ElementResolver> resolvers;
 
-	JavaElementsResolver(TestDescriptor engineDescriptor, Set<ElementResolver> resolvers) {
+	JavaElementsResolver(TestDescriptorMutable engineDescriptor, Set<ElementResolver> resolvers) {
 		this.engineDescriptor = engineDescriptor;
 		this.resolvers = resolvers;
 	}
 
 	void resolveClass(Class<?> testClass) {
-		Set<TestDescriptor> resolvedDescriptors = resolveContainerWithParents(testClass);
+		Set<TestDescriptorMutable> resolvedDescriptors = resolveContainerWithParents(testClass);
 		resolvedDescriptors.forEach(this::resolveChildren);
 
 		if (resolvedDescriptors.isEmpty()) {
@@ -63,8 +63,8 @@ class JavaElementsResolver {
 	}
 
 	void resolveMethod(Class<?> testClass, Method testMethod) {
-		Set<TestDescriptor> potentialParents = resolveContainerWithParents(testClass);
-		Set<TestDescriptor> resolvedDescriptors = resolveForAllParents(testMethod, potentialParents);
+		Set<TestDescriptorMutable> potentialParents = resolveContainerWithParents(testClass);
+		Set<TestDescriptorMutable> resolvedDescriptors = resolveForAllParents(testMethod, potentialParents);
 
 		if (resolvedDescriptors.isEmpty()) {
 			logger.warning(() -> format("Method '%s' could not be resolved.", testMethod.toGenericString()));
@@ -73,9 +73,9 @@ class JavaElementsResolver {
 		logMultipleTestDescriptorsForSingleElement(testMethod, resolvedDescriptors);
 	}
 
-	private Set<TestDescriptor> resolveContainerWithParents(Class<?> testClass) {
+	private Set<TestDescriptorMutable> resolveContainerWithParents(Class<?> testClass) {
 		if (isInnerClass.test(testClass)) {
-			Set<TestDescriptor> potentialParents = resolveContainerWithParents(testClass.getDeclaringClass());
+			Set<TestDescriptorMutable> potentialParents = resolveContainerWithParents(testClass.getDeclaringClass());
 			return resolveForAllParents(testClass, potentialParents);
 		}
 		else {
@@ -119,7 +119,7 @@ class JavaElementsResolver {
 	 *
 	 * @return the number of segments resolved
 	 */
-	private int resolveUniqueId(TestDescriptor parent, List<Segment> remainingSegments) {
+	private int resolveUniqueId(TestDescriptorMutable parent, List<Segment> remainingSegments) {
 		if (remainingSegments.isEmpty()) {
 			resolveChildren(parent);
 			return 0;
@@ -127,15 +127,15 @@ class JavaElementsResolver {
 
 		Segment head = remainingSegments.remove(0);
 		for (ElementResolver resolver : this.resolvers) {
-			Optional<TestDescriptor> resolvedDescriptor = resolver.resolveUniqueId(head, parent);
+			Optional<TestDescriptorMutable> resolvedDescriptor = resolver.resolveUniqueId(head, parent);
 			if (!resolvedDescriptor.isPresent()) {
 				continue;
 			}
 
-			Optional<TestDescriptor> foundTestDescriptor = findTestDescriptorByUniqueId(
+			Optional<TestDescriptorMutable> foundTestDescriptor = findTestDescriptorByUniqueId(
 				resolvedDescriptor.get().getUniqueId());
-			TestDescriptor descriptor = foundTestDescriptor.orElseGet(() -> {
-				TestDescriptor newDescriptor = resolvedDescriptor.get();
+			TestDescriptorMutable descriptor = foundTestDescriptor.orElseGet(() -> {
+				TestDescriptorMutable newDescriptor = resolvedDescriptor.get();
 				parent.addChild(newDescriptor);
 				return newDescriptor;
 			});
@@ -145,21 +145,22 @@ class JavaElementsResolver {
 		return 0;
 	}
 
-	private Set<TestDescriptor> resolveContainerWithChildren(Class<?> containerClass,
-			Set<TestDescriptor> potentialParents) {
+	private Set<TestDescriptorMutable> resolveContainerWithChildren(Class<?> containerClass,
+			Set<TestDescriptorMutable> potentialParents) {
 
-		Set<TestDescriptor> resolvedDescriptors = resolveForAllParents(containerClass, potentialParents);
+		Set<TestDescriptorMutable> resolvedDescriptors = resolveForAllParents(containerClass, potentialParents);
 		resolvedDescriptors.forEach(this::resolveChildren);
 		return resolvedDescriptors;
 	}
 
-	private Set<TestDescriptor> resolveForAllParents(AnnotatedElement element, Set<TestDescriptor> potentialParents) {
-		Set<TestDescriptor> resolvedDescriptors = new HashSet<>();
+	private Set<TestDescriptorMutable> resolveForAllParents(AnnotatedElement element,
+			Set<TestDescriptorMutable> potentialParents) {
+		Set<TestDescriptorMutable> resolvedDescriptors = new HashSet<>();
 		potentialParents.forEach(parent -> resolvedDescriptors.addAll(resolve(element, parent)));
 		return resolvedDescriptors;
 	}
 
-	private void resolveChildren(TestDescriptor descriptor) {
+	private void resolveChildren(TestDescriptorMutable descriptor) {
 		if (descriptor instanceof ClassTestDescriptor) {
 			Class<?> testClass = ((ClassTestDescriptor) descriptor).getTestClass();
 			resolveContainedMethods(descriptor, testClass);
@@ -167,20 +168,20 @@ class JavaElementsResolver {
 		}
 	}
 
-	private void resolveContainedNestedClasses(TestDescriptor containerDescriptor, Class<?> clazz) {
+	private void resolveContainedNestedClasses(TestDescriptorMutable containerDescriptor, Class<?> clazz) {
 		List<Class<?>> nestedClassesCandidates = findNestedClasses(clazz, isInnerClass);
 		nestedClassesCandidates.forEach(
 			nestedClass -> resolveContainerWithChildren(nestedClass, Collections.singleton(containerDescriptor)));
 	}
 
-	private void resolveContainedMethods(TestDescriptor containerDescriptor, Class<?> testClass) {
+	private void resolveContainedMethods(TestDescriptorMutable containerDescriptor, Class<?> testClass) {
 		List<Method> testMethodCandidates = findMethods(testClass, method -> !ReflectionUtils.isPrivate(method),
 			ReflectionUtils.HierarchyTraversalMode.TOP_DOWN);
 		testMethodCandidates.forEach(method -> resolve(method, containerDescriptor));
 	}
 
-	private Set<TestDescriptor> resolve(AnnotatedElement element, TestDescriptor parent) {
-		Set<TestDescriptor> descriptors = this.resolvers.stream() //
+	private Set<TestDescriptorMutable> resolve(AnnotatedElement element, TestDescriptorMutable parent) {
+		Set<TestDescriptorMutable> descriptors = this.resolvers.stream() //
 				.map(resolver -> tryToResolveWithResolver(element, parent, resolver)) //
 				.filter(testDescriptors -> !testDescriptors.isEmpty()) //
 				.flatMap(Collection::stream) //
@@ -191,14 +192,14 @@ class JavaElementsResolver {
 		return descriptors;
 	}
 
-	private Set<TestDescriptor> tryToResolveWithResolver(AnnotatedElement element, TestDescriptor parent,
+	private Set<TestDescriptorMutable> tryToResolveWithResolver(AnnotatedElement element, TestDescriptorMutable parent,
 			ElementResolver resolver) {
 
-		Set<TestDescriptor> resolvedDescriptors = resolver.resolveElement(element, parent);
-		Set<TestDescriptor> result = new LinkedHashSet<>();
+		Set<TestDescriptorMutable> resolvedDescriptors = resolver.resolveElement(element, parent);
+		Set<TestDescriptorMutable> result = new LinkedHashSet<>();
 
 		resolvedDescriptors.forEach(testDescriptor -> {
-			Optional<TestDescriptor> existingTestDescriptor = findTestDescriptorByUniqueId(
+			Optional<TestDescriptorMutable> existingTestDescriptor = findTestDescriptorByUniqueId(
 				testDescriptor.getUniqueId());
 			if (existingTestDescriptor.isPresent()) {
 				result.add(existingTestDescriptor.get());
@@ -213,11 +214,12 @@ class JavaElementsResolver {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Optional<TestDescriptor> findTestDescriptorByUniqueId(UniqueId uniqueId) {
-		return (Optional<TestDescriptor>) this.engineDescriptor.findByUniqueId(uniqueId);
+	private Optional<TestDescriptorMutable> findTestDescriptorByUniqueId(UniqueId uniqueId) {
+		return (Optional<TestDescriptorMutable>) this.engineDescriptor.findByUniqueId(uniqueId);
 	}
 
-	private void logMultipleTestDescriptorsForSingleElement(AnnotatedElement element, Set<TestDescriptor> descriptors) {
+	private void logMultipleTestDescriptorsForSingleElement(AnnotatedElement element,
+			Set<TestDescriptorMutable> descriptors) {
 		if (descriptors.size() > 1 && element instanceof Method) {
 			Method method = (Method) element;
 			logger.warning(String.format(
@@ -227,5 +229,4 @@ class JavaElementsResolver {
 				method.toGenericString(), descriptors.stream().map(d -> d.getClass().getName()).collect(toList())));
 		}
 	}
-
 }

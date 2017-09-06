@@ -22,12 +22,12 @@ import java.util.function.Predicate;
 import org.junit.jupiter.engine.discovery.predicates.IsScannableTestClass;
 import org.junit.platform.commons.meta.API;
 import org.junit.platform.engine.EngineDiscoveryRequest;
-import org.junit.platform.engine.TestDescriptor;
 import org.junit.platform.engine.discovery.ClassSelector;
 import org.junit.platform.engine.discovery.ClasspathRootSelector;
 import org.junit.platform.engine.discovery.MethodSelector;
 import org.junit.platform.engine.discovery.PackageSelector;
 import org.junit.platform.engine.discovery.UniqueIdSelector;
+import org.junit.platform.engine.support.descriptor.TestDescriptorMutable;
 
 /**
  * {@code DiscoverySelectorResolver} resolves selectors with the help of a
@@ -43,7 +43,7 @@ public class DiscoverySelectorResolver {
 
 	private static final IsScannableTestClass isScannableTestClass = new IsScannableTestClass();
 
-	public void resolveSelectors(EngineDiscoveryRequest request, TestDescriptor engineDescriptor) {
+	public void resolveSelectors(EngineDiscoveryRequest request, TestDescriptorMutable engineDescriptor) {
 		JavaElementsResolver javaElementsResolver = createJavaElementsResolver(engineDescriptor);
 		Predicate<String> classNamePredicate = buildClassNamePredicate(request);
 
@@ -64,11 +64,9 @@ public class DiscoverySelectorResolver {
 		request.getSelectorsByType(UniqueIdSelector.class).forEach(selector -> {
 			javaElementsResolver.resolveUniqueId(selector.getUniqueId());
 		});
-
-		engineDescriptor.applyInSubtreeBottomUp(TestDescriptor::prune);
 	}
 
-	private JavaElementsResolver createJavaElementsResolver(TestDescriptor engineDescriptor) {
+	private JavaElementsResolver createJavaElementsResolver(TestDescriptorMutable engineDescriptor) {
 		Set<ElementResolver> resolvers = new LinkedHashSet<>();
 		resolvers.add(new TestContainerResolver());
 		resolvers.add(new NestedTestsResolver());

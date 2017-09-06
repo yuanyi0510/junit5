@@ -40,6 +40,7 @@ import org.junit.platform.engine.TestDescriptor;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.UniqueId;
 import org.junit.platform.engine.support.descriptor.EngineDescriptor;
+import org.junit.platform.engine.support.descriptor.TestDescriptorMutable;
 import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
 import org.mockito.ArgumentCaptor;
@@ -209,7 +210,7 @@ class RunListenerAdapterTests {
 		return TestIdentifier.from(newMethodDescriptor());
 	}
 
-	private static TestDescriptor newMethodDescriptor() throws Exception {
+	private static TestDescriptorMutable newMethodDescriptor() throws Exception {
 		return new TestMethodTestDescriptor(UniqueId.forEngine("method"), MyTestClass.class,
 			MyTestClass.class.getDeclaredMethod(MY_TEST_METHOD_NAME));
 	}
@@ -218,23 +219,23 @@ class RunListenerAdapterTests {
 		return TestIdentifier.from(newClassDescriptor());
 	}
 
-	private static TestDescriptor newClassDescriptor() {
+	private static TestDescriptorMutable newClassDescriptor() {
 		return new ClassTestDescriptor(UniqueId.forEngine("class"), MyTestClass.class);
 	}
 
 	private static TestIdentifier newSourcelessIdentifierWithParent(TestPlan testPlan, String parentDisplay) {
 		// A parent test identifier with a name.
-		TestDescriptor parent = mock(TestDescriptor.class);
+		TestDescriptor parent = mock(TestDescriptorMutable.class);
 		when(parent.getUniqueId()).thenReturn(newId());
 		when(parent.getDisplayName()).thenReturn(parentDisplay);
 		when(parent.getLegacyReportingName()).thenReturn(parentDisplay);
-		when(parent.getType()).thenReturn(TestDescriptor.Type.CONTAINER);
+		when(parent.getType()).thenReturn(TestDescriptorMutable.Type.CONTAINER);
 		TestIdentifier parentId = TestIdentifier.from(parent);
 
 		// The (child) test case that is to be executed as part of a test plan.
-		TestDescriptor child = mock(TestDescriptor.class);
+		TestDescriptor child = mock(TestDescriptorMutable.class);
 		when(child.getUniqueId()).thenReturn(newId());
-		when(child.getType()).thenReturn(TestDescriptor.Type.TEST);
+		when(child.getType()).thenReturn(TestDescriptorMutable.Type.TEST);
 
 		// Ensure the child source is null yet that there is a parent -- the special case to be tested.
 		when(child.getSource()).thenReturn(Optional.empty());
@@ -256,8 +257,8 @@ class RunListenerAdapterTests {
 		return new EngineDescriptor(UniqueId.forEngine("engine"), "engine");
 	}
 
-	private static TestIdentifier identifiersAsParentOnTestPlan(TestPlan plan, TestDescriptor parent,
-			TestDescriptor child) {
+	private static TestIdentifier identifiersAsParentOnTestPlan(TestPlan plan, TestDescriptorMutable parent,
+			TestDescriptorMutable child) {
 		child.setParent(parent);
 
 		TestIdentifier parentIdentifier = TestIdentifier.from(parent);

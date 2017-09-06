@@ -26,7 +26,7 @@ import org.junit.platform.engine.TestTag;
 import org.junit.platform.engine.UniqueId;
 
 /**
- * Abstract base implementation of {@link TestDescriptor} that may be used by
+ * Abstract base implementation of {@link TestDescriptorMutable} that may be used by
  * custom {@link org.junit.platform.engine.TestEngine TestEngines}.
  *
  * <p>Subclasses should provide a {@code source} in their constructor, if
@@ -35,17 +35,17 @@ import org.junit.platform.engine.UniqueId;
  * @since 1.0
  */
 @API(Stable)
-public abstract class AbstractTestDescriptor implements TestDescriptor {
+public abstract class AbstractTestDescriptor implements TestDescriptorMutable {
 
 	private final UniqueId uniqueId;
 
 	private final String displayName;
 
-	private TestDescriptor parent;
+	private TestDescriptorMutable parent;
 
 	private final TestSource source;
 
-	private final Set<TestDescriptor> children = Collections.synchronizedSet(new LinkedHashSet<>(16));
+	private final Set<TestDescriptorMutable> children = Collections.synchronizedSet(new LinkedHashSet<>(16));
 
 	/**
 	 * Create a new {@code AbstractTestDescriptor} with the supplied
@@ -95,12 +95,12 @@ public abstract class AbstractTestDescriptor implements TestDescriptor {
 	}
 
 	@Override
-	public final void setParent(TestDescriptor parent) {
+	public final void setParent(TestDescriptorMutable parent) {
 		this.parent = parent;
 	}
 
 	@Override
-	public void removeChild(TestDescriptor child) {
+	public void removeChild(TestDescriptorMutable child) {
 		Preconditions.notNull(child, "child must not be null");
 		this.children.remove(child);
 		child.setParent(null);
@@ -130,7 +130,7 @@ public abstract class AbstractTestDescriptor implements TestDescriptor {
 	}
 
 	@Override
-	public void addChild(TestDescriptor child) {
+	public void addChild(TestDescriptorMutable child) {
 		Preconditions.notNull(child, "child must not be null");
 		child.setParent(this);
 		this.children.add(child);

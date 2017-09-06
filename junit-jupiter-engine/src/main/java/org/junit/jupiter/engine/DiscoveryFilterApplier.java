@@ -44,7 +44,7 @@ class DiscoveryFilterApplier {
 		engineDescriptor.applyInSubtreeTopDown(descriptor -> {
 			if (descriptor instanceof ClassTestDescriptor) {
 				if (!includePackage((ClassTestDescriptor) descriptor, packageNameFilters)) {
-					descriptor.removeFromHierarchy();
+					((ClassTestDescriptor) descriptor).removeFromHierarchy();
 				}
 			}
 		});
@@ -75,7 +75,7 @@ class DiscoveryFilterApplier {
 		engineDescriptor.applyInSubtreeTopDown(descriptor -> {
 			if (descriptor instanceof ClassTestDescriptor
 					&& !includeClass((ClassTestDescriptor) descriptor, classNameFilters)) {
-				descriptor.removeFromHierarchy();
+				((ClassTestDescriptor) descriptor).removeFromHierarchy();
 			}
 		});
 	}
