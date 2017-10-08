@@ -109,6 +109,10 @@ allprojects { subproj ->
 	apply plugin: 'com.github.ben-manes.versions' // gradle dependencyUpdates
 	apply from: "$rootDir/gradle/degraph.gradle"
 
+	if (project.hasProperty('enableJaCoCo')) {
+		apply plugin: "jacoco"
+	}
+
 	repositories {
 		// mavenLocal()
 		mavenCentral()
@@ -470,6 +474,22 @@ subprojects { subproj ->
 		if (project.hasProperty('enableClover') && subproj.name in cloverTestProjects) {
 			cloverAggregateDatabases.dependsOn subproj.tasks.test
 		}
+		if (project.hasProperty('enableJaCoCo')) {
+			jacoco {
+				toolVersion = '0.7.9'
+				if (tasks.findByName('junitPlatformTest')) {
+			        applyTo(junitPlatformTest)
+				}
+		    }
+			if (tasks.findByName('junitPlatformTest')) {
+				task jacocoJunitPlatformTestReport(type: JacocoReport, dependsOn: junitPlatformTest) {
+					executionData(junitPlatformTest)
+					sourceSets(sourceSets.main)
+			        sourceDirectories = files(sourceSets.main.allSource.srcDirs)
+			        classDirectories = files(sourceSets.main.output)
+				}
+			}
+		}
 	}
 
 }
@@ -572,6 +592,29 @@ configure(rootProject) {
 						format(type: 'xml')
 					}
 				}
+			}
+		}
+	}
+
+	if (project.hasProperty('enableJaCoCo')) {
+		def relevantSubprojects = subprojects
+			.findAll { it.name != 'junit-platform-console-standalone' }
+			.findAll { it.name != 'documentation' }
+		task jacocoRootReport(type: JacocoReport, dependsOn: relevantSubprojects.test) {
+			additionalSourceDirs = files(relevantSubprojects.sourceSets.main.allSource.srcDirs)
+			sourceDirectories = files(relevantSubprojects.sourceSets.main.allSource.srcDirs)
+			classDirectories =  files(relevantSubprojects.collect { it.tasks.withType(Jar) })
+			executionData(files(relevantSubprojects.jacocoTestReport.executionData)
+				.findAll { it.exists() }
+			)
+			executionData(files(relevantSubprojects
+				.collect { it.file("${it.buildDir}/jacoco/junitPlatformTest.exec") }
+				.findAll { it.exists() })
+			)
+			reports {
+				html.enabled = true
+				xml.enabled = true
+				csv.enabled = false
 			}
 		}
 	}
