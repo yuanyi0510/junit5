@@ -6,6 +6,7 @@ buildscript {
 		// mavenLocal()
 		maven { url 'https://plugins.gradle.org/m2/' }
 		maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+		jcenter()
 	}
 	dependencies {
 		classpath('com.diffplug.spotless:spotless-plugin-gradle:3.6.0')
@@ -14,6 +15,7 @@ buildscript {
 		classpath('org.ajoberstar:gradle-git:1.7.2')
 		classpath('org.junit.platform:junit-platform-gradle-plugin:1.0.1')
 		classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+		classpath('me.champeau.gradle:japicmp-gradle-plugin:0.2.6')
 	}
 }
 
@@ -250,14 +252,40 @@ subprojects { subproj ->
 	if (subproj.name in mavenizedProjects) {
 		apply plugin: 'maven'
 		apply plugin: 'signing'
+		apply plugin: 'me.champeau.gradle.japicmp'
 
 		if (subproj.name in platformProjects) {
 			subproj.group = platformGroup
 			subproj.version = platformVersion
+			subproj.baseline = platformBaseline
 		}
 		else if (subproj.name in vintageProjects) {
 			subproj.group = vintageGroup
 			subproj.version = vintageVersion
+			subproj.baseline = vintageBaseline
+		}
+
+		configurations {
+			base
+		}
+
+		dependencies {
+			base(group: subproj.group, name: subproj.name, version: subproj.baseline) {
+				force = true
+			}
+		}
+
+		afterEvaluate {
+			task japicmp(type: me.champeau.gradle.japicmp.JapicmpTask, dependsOn: assemble) {
+				oldArchives = files(files(configurations.base)[0])
+				newArchives = files(jar.archivePath)
+				oldClasspath = configurations.base
+				newClasspath = subproj.sourceSets.main.compileClasspath
+				txtOutputFile = file("$buildDir/reports/japi-${subproj.name}.txt")
+				annotationExcludes = ['@kotlin.Metadata']
+				ignoreMissingClasses = true
+				onlyModified = true
+			}
 		}
 
 		javadoc {
