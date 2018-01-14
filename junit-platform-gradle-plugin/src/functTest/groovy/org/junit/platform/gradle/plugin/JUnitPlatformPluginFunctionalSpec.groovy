@@ -15,6 +15,7 @@ import java.nio.file.Paths
 
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.TaskOutcome
+import spock.lang.Ignore
 
 class JUnitPlatformPluginFunctionalSpec extends AbstractFunctionalSpec {
 
@@ -83,6 +84,44 @@ class JUnitPlatformPluginFunctionalSpec extends AbstractFunctionalSpec {
 		result.task(':junitPlatformTest').outcome == TaskOutcome.FAILED
 		result.output.contains('1 tests failed')
 	}
+
+	@Ignore("Provider class moduleName=groovy-all not in module")
+	/*
+	 Error occurred during initialization of boot layer
+	 java.lang.module.FindException: Unable to derive module descriptor for [...]/groovy-all-2.4.12.jar
+	 Caused by: java.lang.module.InvalidModuleDescriptorException: Provider class moduleName=groovy-all not in module
+	 */
+	// Potential solution: don't add all modules via JUnitPlatformJavaExec#args.addAll('--add-modules', 'ALL-MODULE-PATH')
+	def "can be used with enabled module-path"() {
+		given:
+		javaFile()
+		modulepath()
+
+		when:
+		BuildResult result = build('build')
+
+		then:
+		result.task(':junitPlatformTest').outcome == TaskOutcome.SUCCESS
+		result.task(':build').outcome == TaskOutcome.SUCCESS
+	}
+
+	private void modulepath() {
+		buildFile << """
+apply plugin: 'java'
+
+dependencies {
+	testCompile files(${splitClasspath(testCompileClasspath)})
+	testRuntime files(${splitClasspath(testRuntimeClasspath)})
+	// Use local dependencies so that defaultDependencies are not used
+	junitPlatform files(${splitClasspath(testRuntimeClasspath)})
+}
+
+junitPlatform {
+	enableModulePath true
+}
+"""
+	}
+
 
 	private static String splitClasspath(List<File> dependencies) {
 		return dependencies
